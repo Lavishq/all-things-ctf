@@ -309,8 +309,11 @@ i find these diff
 ---
 > x2gLTTjFwMOhQ8oWNbMN362QKxfRqGlO
 ```
+---
+day2 of doing bandit ctf and i will cheat more this time... and do it fast
 
 ## Level 19
+
 opens a new tab and try to login to bandit 18 while staing keeping bandit17 tab on and use the above diff passes, old didnt login, new did but see `byebye as was in note`
 
 now i open the [challenge](https://overthewire.org/wargames/bandit/bandit19.html) and wow, .bashrc was modified to log out... i think i can close bandit17 tab and focus on bandit18, this is cool trick that can be used to annoy your friends and they have to either wipeout their disk or chroot and fix it i guess, lol
@@ -329,3 +332,420 @@ outputs: `cGWpMaKXVwDUNgPAVJbWYuGHVn9zl3j8`
 i have a doubt tho, since we run `/bin/bash` why doesnt it run .bashrc? is it cause we are directly running binary- maybe investigate it later
 
 ## Level 20
+login, ls -la
+`./bandit20-do`
+outputs: 
+```
+Run a command as another user.
+  Example: ./bandit20-do id
+```
+
+`/bandit20-do id`
+outputs: `uid=11019(bandit19) gid=11019(bandit19) euid=11020(bandit20) groups=11019(bandit19)`
+
+`./bandit20-do cat /etc/bandit_pass/bandit20 `
+outputs: `0qXahG8ZjOVMN9Ghs7iOWsCfZyXOUbYO`
+
+> learnt something new, `Suid is a special permission. It will replace the x of the user permission. It means the binary will be run as the owner of the binary, not the one executing it. To give a binary suid permissions the following command needs to be used: chmod u+s <filename>`, idk if i knew about suid or forgot but it feels a new concept and here is the [source](https://mayadevbe.me/posts/overthewire/bandit/level20/) is read from.
+
+## Level 21
+new thing i learn here is `-n flag prevents newline` and i already knew about `&` is used for sending proc in bg
+
+`echo -n '0qXahG8ZjOVMN9Ghs7iOWsCfZyXOUbYO' | nc -l -p 1234 &`
+
+`./suconnect 1234`
+
+output:
+```
+Read: 0qXahG8ZjOVMN9Ghs7iOWsCfZyXOUbYO
+Password matches, sending next password
+EeoULMCra2q0dSkYj561DX7s1CpBuOBt
+```
+
+btw, `ssh, nc, cat, bash, screen, tmux, Unix ‘job control’ (bg, fg, jobs, &, CTRL-Z, …)` these were the necessary cmds so maybe it couldve used multiple terminal via tmux or tabs and achieved them without `&` but imma not do that
+
+## Level 22
+cmds, `cron, crontab`
+crons, `cat /etc/cron.d/` press tab and outputs some stuff then `cat /etc/cron.d/cronjob_bandit22` 
+output: 
+```
+@reboot bandit22 /usr/bin/cronjob_bandit22.sh &> /dev/null
+* * * * * bandit22 /usr/bin/cronjob_bandit22.sh &> /dev/null
+```
+
+cat the above .sh file via `cat /usr/bin/cronjob_bandit22.sh `
+```
+#!/bin/bash
+chmod 644 /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv
+cat /etc/bandit_pass/bandit22 > /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv
+```
+i thought it was password for next level and used it for next level but it is not and i failed to login, it is a file that contains the password so cat it using `cat /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv`
+
+output: `tRae0UfB9v0UzbCdn9cY0gQnds9GF58Q`
+
+> another thing i noticed is you can login using `ssh <user>@bandit.labs.overthewire.org -p 2220`
+
+## Level 23
+follow prev. steps and this is a bash script w/ a md5 hash as password in another file
+
+well you can run each line one by one to see what they do, 
+```
+bandit22@bandit:~$ whoami
+bandit22
+bandit22@bandit:~$ $(echo I am user $myname | md5sum | cut -d ' ' -f 1)
+7db97df393f40ad1691b6e1fb03d53eb: command not found
+bandit22@bandit:~$ echo I am user $myname | md5sum | cut -d ' ' -f 1   
+7db97df393f40ad1691b6e1fb03d53eb
+```
+so i thought the password would be in `/tmp/7db97df393f40ad1691b6e1fb03d53eb`
+
+but we have to use `bandit23` since the ctf of bandit22 doesnt have a file or dir/ and bandit23 output does `echo I am user bandit23 | md5sum | cut -d ' ' -f 1`
+`cat /tmp/8ca319486bfbbc3663ea0fbe81326349`
+output: `0Zf11ioIjMVN551jX3CmStKLYqjk54Ga`
+
+## Level 24
+cmds `chmod, cron, crontab, crontab`, and also we need to create a .sh script
+
+well, i looked at `cat /etc/cron.d/cronjob_bandit23` and then `cat /usr/bin/cronjob_bandit23.sh` had code same as prev. so i looked for `cat /usr/bin/cronjob_bandit24.sh` and it gave a bash script
+
+```
+#!/bin/bash
+
+myname=$(whoami)
+
+cd /var/spool/$myname
+echo "Executing and deleting all scripts in /var/spool/$myname:"
+for i in * .*;
+do
+    if [ "$i" != "." -a "$i" != ".." ];
+    then
+        echo "Handling $i"
+        owner="$(stat --format "%U" ./$i)"
+        if [ "${owner}" = "bandit23" ]; then
+            timeout -s 9 60 ./$i
+        fi
+        rm -f ./$i
+    fi
+done
+```
+
+well my understanding of bash is not high but okayish, so in for loop i think it is looping upto the no. of files `/var/spool/$myname` has since echo.. and then it has if check ... and echo and removes the file... as mentioned
+
+now, i tried to run the lines one by one and i got error for no such file or /dir for `/var/spool/bandit23` so i tried `bandit24` and it worked
+`ls -a` 
+o: `.  ..  foo`
+hm, the if check is doing something `if [ "$i" != "." -a "$i" != ".." ];` w/ `current dir/` or `parent dir/` not eq, stores owner and if owner is bandit23 then it runs every 60 seconds and `-s is signal flag and signal 9 is kill iirc` and then removes the file... and `stat --format "%U" ./$i` line idk what itis but i ran it and it displayed `root` and then `whatis stat` outputs
+
+```
+stat (1)             - display file or file system status
+stat (2)             - get file status
+stat (3type)         - file status
+```
+
+well, i got tired of investigating it for more decadous min and cheat-
+he used `mktemp -d` but i cant tab or typing the random characters is a drag ...  i tried to use `mkdir /tmp/lopl` then  `cd` into it then `vi script.sh`
+
+`chmod 777 script.sh`
+pasted this into it
+```
+#!/bin/bash
+
+cat /etc/bandit_pass/bandit24 > /tmp/lopl/pass
+```
+`touch pass`
+`chmod 777 pass`
+`chmod 777 .`
+`cp script.sh /var/spool/bandit24/foo/`
+
+> this was a little difficult, but i did it 
+
+```
+bandit23@bandit:/tmp/lopl$ cat pass
+gb8KRRCsshuZXI0tUuR6ypOFjiZbf3G8
+```
+
+## Level 25
+a daemon, 
+writing a script [from source](https://mayadevbe.me/posts/overthewire/bandit/level25/)
+
+`mkdir /tmp/b24` cd into it
+`vi brute_fp.sh`
+paste
+```
+#!/bin/bash
+
+for i in {0000..9999}
+do
+        echo gb8KRRCsshuZXI0tUuR6ypOFjiZbf3G8 $i >> possibilities.txt
+done
+
+cat possibilities.txt | nc localhost 30002 > result.txt
+```
+`chmod +x brute_fp.sh`
+`./brute_fp.sh`
+`sort result.txt | grep -v "Wrong!"` -v is invert flag meaning it excludes "Wrong!"
+but i got this output
+```
+I am the pincode checker for user bandit25. Please enter the password for user bandit24 and the secret pincode on a single line, separated by a space.
+```
+
+so i ran this line and got the following output,
+
+```for i in {0000..9999}; do echo gb8KRRCsshuZXI0tUuR6ypOFjiZbf3G8 $i; done | nc localhost 30002```
+
+```
+Wrong! Please enter the correct current password and pincode. Try again.
+Correct!
+The password of user bandit25 is iCi86ttT4KSNe1armKiwbQNmB3YJP3q4
+```
+
+## Level 26 
+i did `ls` and found the pk for bandit26 but lets read more,
+after reading q, i looked at soln, and read the line, `The information, what shell is the default for a user, can be found at the end of the line for the user in the ‘/etc/passwd’ file` then ran the cat both locally and on sshed login `/usr/bin/showtext` was then shell for bandit26
+
+cmds for this level are `ssh, cat, more, vi, ls, id, pwd`
+
+i continued reading, `more is a shell command that allows the display of files in an interactive mode. Specifically, this interactive mode only works when the content of the file is too large to fully be displayed in the terminal window. One command that is allowed in the interactive mode is v. This command will open the file in the editor ‘vim’.` didnt understand much but know that visual, insert, normal modes are in vim so i might need to investigate interactive mode of shell or whatever ... idk
+
+ik some of it since i had to use but dont usually remember cmds, so pasting here `It is possible to use vim to break out of a restricted environment and spawn a shell. To spawn the user’s default shell, the command :shell is used. To change the shell to ‘/bin/bash’ the command is :set shell=/bin/sh.`
+
+following his solution,
+`cat /usr/bin/showtext`
+o:
+```
+#!/bin/sh
+
+export TERM=linux
+
+exec more ~/text.txt
+exit 0
+```
+the script reers to a file `text.txt` which is probably in /home/bandit26/
+
+```
+bandit25@bandit:~$ whatis more
+more (1)             - display the contents of a file in a terminal
+```
+cat the pk found initially and copy, logout, paste pk in a file
+running locally,
+```
+❯ ls -l sshkey.private
+.rwx------ 1.7k lavishq 13 Jun 18:10  sshkey.private
+```
+
+`chmod 700` and `ssh bandit.labs.overthewire.org -p 2220 -l bandit26 -i sshkey.private` and i get logged out w/ `Connection to bandit.labs.overthewire.org closed.` msg 
+
+and the solution im referring says, `What exactly has happened? The text in ’text.txt’ is very short, meaning the whole text can immediately be displayed. more does not need to go into command/interactive mode. If we make the terminal window smaller, more will go into command mode. We can then use v to go into vim. Now we can rescale the window.`
+
+In my case i tried to do minimization of only 1 line display but still got logged out... i tried it w/ even less and it worked the pressed `v` and entered vi, i ran `:r /etc/bandit/pass/bandit26` well i used tabs to autocomple-
+
+output: `s0773xxkk0MXfdqOfPRVr9L3jJBUOgCZ`
+
+> more on it, `Vim is now opened as bandit26 and we can do different things to retrieve the password. With :e /etc/bandit\_pass/bandit26 we can open the password file and read the password. If we want a shell, we could try the :shell command that vim offers. This command, however, uses the user’s default shell. What we need to do instead is to set the default shell of the user in vim to a useful shell, like \bin\bash. The commands look like the following: :set shell=/bin/bash and then use :shell. Finally, we have a shell and can get the password for the user. cat /etc/bandit\_pass/bandit26` pasted by [source](https://mayadevbe.me/posts/overthewire/bandit/level26/)
+
+## Level 27
+using `more on it` ending part to login again, 
+then `:set shell=/bin/bash ` then `:shell`
+`ls`
+o: `bandit27-do  text.txt`
+
+here is following
+o: 
+```
+bandit26@bandit:~$ ./bandit27-do 
+Run a command as another user.
+  Example: ./bandit27-do id
+
+bandit26@bandit:~$ ./bandit27-do id
+uid=11026(bandit26) gid=11026(bandit26) euid=11027(bandit27) groups=11026(bandit26)
+
+bandit26@bandit:~$ ./bandit27-do cat /etc/bandit_pass/bandit27
+upsNCc7vzaRDx6oZC6GiR6ERwe1MowGB
+```
+
+## Level 28
+login, this is git
+`mkdir 27`
+`cd 27`
+`git clone ssh://bandit27-git@localhost/home/bandit27-git/repo`
+it doesnt clone so i look at the goal again and 
+`git clone ssh://bandit27-git@localhost:2220/home/bandit27-git/repo` then it asks password and i enter the level pass
+```
+bandit27@bandit:/tmp/27$ cat repo/README 
+The password to the next level is: Yz9IpL0sBcCeuG7m9uQFt8ZNpS4HZRcN
+```
+
+## Level 29
+login, did like b4 `mkdir 28` cd then git clone w/ port and cat readme gave
+```
+# Bandit Notes
+Some notes for level29 of bandit.
+
+## credentials
+
+- username: bandit29
+- password: xxxxxxxxxx
+```
+now what, go look at cheats ... solution had explainer of `git log` and `git show <commit>`
+so i got my hints, lets continue `no cheats`
+
+log commits
+```
+commit af334669319406775f87c8f54cc3e22df09a4f8c (HEAD -> master, origin/master, origin/HEAD)
+Author: Morla Porla <morla@overthewire.org>
+Date:   Tue Jun 11 21:29:56 2024 +0000
+
+    fix info leak
+
+commit dd82249be85fc9f61c7ad9f5bbc49e41df0f0503
+Author: Morla Porla <morla@overthewire.org>
+Date:   Tue Jun 11 21:29:56 2024 +0000
+
+    add missing data
+
+commit 65a35069b7edd886c0babb1297a177727123da29
+Author: Ben Dover <noone@overthewire.org>
+Date:   Tue Jun 11 21:29:56 2024 +0000
+
+    initial commit of README.md
+```
+
+hm maybe use git show, one by one
+
+`git show <>` ran the first commit hash and got the pass
+
+```
+bandit28@bandit:/tmp/28/repo$ git show af334669319406775f87c8f54cc3e22df09a4f8c 
+WARNING: terminal is not fully functional
+Press RETURN to continue 
+commit af334669319406775f87c8f54cc3e22df09a4f8c (HEAD -> master, origin/master, origin/HEAD)
+Author: Morla Porla <morla@overthewire.org>
+Date:   Tue Jun 11 21:29:56 2024 +0000
+
+    fix info leak
+
+diff --git a/README.md b/README.md
+index d4e3b74..5c6457b 100644
+--- a/README.md
++++ b/README.md
+@@ -4,5 +4,5 @@ Some notes for level29 of bandit.
+ ## credentials
+ 
+ - username: bandit29
+-- password: `4pT1t5DENaYuqnqvadYs1oE4QLCdjmJ7`
++- password: xxxxxxxxxx
+```
+
+## Level 30
+for this level i did all as b4, and did `git show <commit>` for 2 commits that had
+and `git branch -a` then it will 
+```
+* dev
+  master
+  remotes/origin/HEAD -> origin/master
+  remotes/origin/dev
+  remotes/origin/master
+  remotes/origin/sploits-dev
+```
+
+one of them has the password... dev or sploits-dev... 
+`git checkout dev`
+and `cat README.md`
+
+```
+# Bandit Notes
+Some notes for bandit30 of bandit.
+
+## credentials
+
+- username: bandit30
+- password: qp30ex3VLz5MDG1n91YowTv4Q8l7CDZL
+```
+
+## Level 31
+same things, like b4 until cat README.md
+well i dont see branches and logs so i will cheat and first thing i see is `git tags` which ive never used and was always curious so will paste from the blog, `Git tagging is a way to mark specific points in the history of the repository. One example would be to mark release points of the software. The command to see the tags is git tag. To create a tag the command is git tag -a <tag_name> -m <"tag description/message">. To see more details, like the tag message and commit, you can use the following command: git show <tag_name>.`
+
+and now, still continuing to cheat since the above method similar to git branch -a might not work here?
+`git tag` lists all tags and only `secret` was displayed
+`git show secret`
+got me the pass
+(well it was just 2 cmds and i leart `git tags` today)
+```
+bandit30@bandit:/tmp/30/repo$ git tag
+WARNING: terminal is not fully functional
+Press RETURN to continue 
+secret
+bandit30@bandit:/tmp/30/repo$ git show secret
+WARNING: terminal is not fully functional
+Press RETURN to continue 
+fb5S2xb7bRyFmAvQYQGEqsbhVyJqhnDy
+bandit30@bandit:/tmp/30/repo$ 
+```
+
+## Level 32
+this one was ez as well but i used exhaustive list like tags, logs and branch -v b4 cating README and in the end readme had the answer
+
+damn, i did it all right and got ` ! [remote rejected] master -> master (pre-receive hook declined)`
+
+things done were, `echo "May I come in?" >> key.txt`
+`git status` `ls` `git add .` status^ `rm .gitignore` add^ `git commit -m "lol"`
+`git push` and i got above specified thing...
+
+time to cheat and see what i did wrong maybe wasnt supposed to rm gitignore
+
+well, well, imma retard.. i did it all right and redid it and got the same error but it has the passwd for next level but i only read the `red line`
+
+
+```
+bandit31-git@localhost's password: 
+Enumerating objects: 8, done.
+Counting objects: 100% (8/8), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (6/6), 552 bytes | 552.00 KiB/s, done.
+Total 6 (delta 0), reused 0 (delta 0), pack-reused 0
+remote: ### Attempting to validate files... ####
+remote: 
+remote: .oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.
+remote: 
+remote: Well done! Here is the password for the next level:
+remote: 3O9RfhqyAlVBEZpVb6LYStshZoqoSx5K 
+remote: 
+remote: .oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.
+remote: 
+To ssh://localhost:2220/home/bandit31-git/repo
+ ! [remote rejected] master -> master (pre-receive hook declined)
+error: failed to push some refs to 'ssh://localhost:2220/home/bandit31-git/repo'
+```
+
+## Level 33
+goal..
+`After all this git stuff, it’s time for another escape. Good luck!`
+out of git loop, they were too quick to solve,
+
+cmds for this level is `sh, man`
+
+you can read the description on linux variables [here](https://mayadevbe.me/posts/overthewire/bandit/level33/) and many other places and i dont want to write about them... i want to solve.. 
+
+everything typed becomes UPPERCASE, so `$0` has ref to shell and is known by umm.. a type of linux users and so that was the solution... still i cheated
+
+solution follows, by running shell and tying `bash` so you get the autocomplete back `cat /etc/bandit_pass/bandit33` tabbing and get password...
+
+the reason this worked is bc if you do `ls -l` you will see the file uppercase is being run as bandit33 suid thing from prev. and so on..
+```
+bandit33@bandit:~$ ls -l
+total 16
+-rwsr-x--- 1 bandit33 bandit32 15136 Jun 11 21:30 uppershell
+```
+also we are bandit33 and so we can read the file directly and even `whoami` will give away the current user as bandit33
+
+```
+bandit33@bandit:~$ cat /etc/bandit_pass/bandit33
+tQdtbs5D5i2vJwkO8mEyYEyTL8izoeJ0
+```
+
+## Level 34 
+you login user prev. and you get a readme 
+
+that gives `congratulations`
